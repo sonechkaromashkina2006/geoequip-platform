@@ -1,0 +1,29 @@
+.env
+*.env
+!.env.example
+ 
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+ 
+# Qt / CMake
+build*/
+CMakeLists.txt.user
+*.user
+.vs/
+ 
+# Web
+node_modules/
+web/dist/
+ 
+# Данные ETL и кэши
+data/raw/
+data/processed/
+data/geocode_cache.json
+*.log
+ 
+# Модели и тома
+.cache/
+neo4j_data/
