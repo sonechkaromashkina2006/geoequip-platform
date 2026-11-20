@@ -121,3 +121,6 @@ async def healthz():
         result = await session.run("RETURN 1")
         await result.single()
     return {"status": "ok"}
+
+from fastapi.staticfiles import StaticFiles
+app.mount("/", StaticFiles(directory="../web", html=True), name="web")
