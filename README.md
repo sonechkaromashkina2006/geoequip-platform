@@ -1,89 +1,79 @@
-# GeoEquip — Информационно-аналитическая система поиска оборудования
+# GeoEquip Intelligence
 
-Гибридная геоинформационная система для поиска и анализа промышленного и научного оборудования с использованием векторного поиска (Sentence-BERT) и графовой базы данных Neo4j.
+Гибридная геоинформационная система подбора организаций и лабораторно-производственного оборудования на основе семантического поиска, графовой модели знаний и географической привязки.
 
----
+## Архитектура и стек
 
-## Требования к окружению
+* **Backend API**: FastAPI (`server/app/main.py`)
+* **Графовая база данных и векторный индекс**: Neo4j (`neo4j:5.23-community`, индекс `equipment_embeddings`)
+* **Векторное представление текста**: Sentence-BERT (`paraphrase-multilingual-MiniLM-L12-v2`)
+* **ETL-пайплайн**: скрипты сбора, нормализации, геокодирования, категоризации и загрузки данных (`etl/ckp/`)
+* **Веб-интерфейс**: клиентская панель поиска и карта на базе Яндекс Карт (`web/index.html`)
 
-### Backend & Database
+## Структура репозитория
 
-* **Docker / Docker Desktop** (или Docker внутри WSL2)
-* **Python 3.10+**
+```text
+.
+├── docker-compose.yml       # Конфигурация запуска сервисов (Neo4j)
+├── etl/ckp/                 # Этапы ETL-обработки данных
+│   ├── fetch.py
+│   ├── parse.py
+│   ├── normalize.py
+│   ├── geocode.py
+│   ├── categorize.py
+│   └── load.py
+├── server/                  # FastAPI-приложение и сервисы поиска/ранжирования
+│   ├── app/
+│   ├── scripts/
+│   ├── tests/
+│   └── requirements.txt
+├── web/
+│   └── index.html           # Веб-интерфейс поиска и визуализации на карте
+└── data/
+    └── seed/data.json       # Базовые демонстрационные данные
+```
 
-### C++ Client
+## Запуск проекта
 
-> ⚠️ **КРИТИЧЕСКОЕ ТРЕБОВАНИЕ К СБОРКЕ C++ КЛИЕНТА:**
-> Модуль **Qt WebEngineView** в ОС Windows корректно поддерживается и собирается **исключительно под компилятором MSVC** (Microsoft Visual C++). Сборка через MinGW **официально не поддерживается** разработчиками Qt.
->
-> Проект гарантированно собирается и работает **строго в следующей связке**:
->
-> * **Qt Version:** `Qt 6.9.3`
-> * **Compiler:** `MSVC 2022 64-bit` (Microsoft Visual Studio 2022 C++ Build Tools)
-> * **Build Target / Kit:** `Desktop Qt 6.9.3 MSVC2022 64bit (Debug/Release)`
+### 1. Запуск Neo4j
 
----
+```bash
+docker compose up -d
+```
 
-## Быстрый старт
+Проверьте доступность Neo4j Browser (`http://localhost:7474`) и Bolt-порта (`7687`). При необходимости примените схему и ограничения из `server/scripts/init_schema.cypher`.
 
-### 1. Настройка базы данных и бэкенда
+### 2. Подготовка окружения Python
 
-1. Перейдите в директорию сервера:
+```bash
+python3 -m venv geoequip-venv
+source geoequip-venv/bin/activate
+pip install -r server/requirements.txt
+```
+
+### 3. Выполнение ETL и загрузка в Neo4j
+
+Скрипты ETL запускаются из корня репозитория при активированном виртуальном окружении:
+
+```bash
+python etl/ckp/normalize.py
+python etl/ckp/geocode.py
+python etl/ckp/categorize.py
+python etl/ckp/load.py
+```
+
+### 4. Запуск API и веб-интерфейса
 
 ```bash
 cd server
+uvicorn app.main:app --reload
 ```
 
-2. Создайте файл конфигурации `.env` на основе шаблона и укажите параметры подключения:
+После запуска интерфейс доступен по адресу `http://localhost:8000/`.
 
-```bash
-cp .env.example .env
-```
+## Основные эндпоинты
 
-*Пример содержимого `.env`:*
-
-```ini
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your_password
-```
-
-3. Запустите контейнер Neo4j:
-
-```bash
-docker-compose up -d
-```
-
-4. Установите зависимости Python:
-
-```bash
-pip install -r requirements.txt
-```
-
-5. Заполните базу данных объектами, векторными эмбеддингами и постройте граф связей:
-
-```bash
-python -m scripts.upload_data
-python -m scripts.add_graph_relations
-```
-
-6. Запустите FastAPI сервер:
-
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
----
-
-### 2. Настройка и сборка C++ Клиента (Qt Creator)
-
-1. Убедитесь, что в **Visual Studio Installer** установлен компонент **Desktop development with C++** (MSVC v143).
-2. Установите **Qt 6.9.3** с обязательными компонентами:
-
-* `Qt WebEngine`
-* `MSVC 2022 64-bit`
-
-3. Откройте **Qt Creator**.
-4. Выберите `File` -> `Open File or Project...` и укажите файл `client/CMakeLists.txt`.
-5. На этапе выбора комплекта (Kit) выберите строго **Desktop Qt 6.9.3 MSVC2022 64bit**.
-6. Нажмите **Configure Project** и запустите проект (`Ctrl + R`).
+* `GET /healthz` — проверка состояния сервиса и подключения к БД
+* `GET /api/database/all` — получение данных организаций с координатами
+* `POST /search` — семантический поиск оборудования и ранжирование организаций с учетом доступности и стоимости
+* `GET /similar/{enterprise_name}` — получение связанных организаций по общим категориям и задачам в графе

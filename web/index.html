@@ -1,62 +1,527 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 
 <head>
     <meta charset="utf-8">
-    <title>GIS Map</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoEquip — Подбор промышленных партнёров и оборудования</title>
     <style>
+        :root {
+            --bg: #f4f6f9;
+            --surface: #ffffff;
+            --surface-subtle: #f8fafc;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --muted: #64748b;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-soft: #eff6ff;
+            --good: #16a34a;
+            --mid: #ca8a04;
+            --low: #ea580c;
+            --bad: #dc2626;
+            --shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         html,
         body {
             height: 100%;
             margin: 0;
-            font-family: sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
         }
 
         #app {
             display: flex;
             height: 100%;
+            width: 100%;
+            overflow: hidden;
         }
 
         #panel {
-            width: 420px;
-            padding: 12px;
-            overflow: auto;
+            width: 460px;
+            min-width: 380px;
+            max-width: 52vw;
+            height: 100%;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow);
+            z-index: 2;
+        }
+
+        .panel-header {
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #ffffff 0%, #fafcff 100%);
+        }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .brand-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .badge-pill {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent);
+            background: var(--accent-soft);
+            padding: 3px 9px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+
+        .brand-subtitle {
+            font-size: 12.5px;
+            color: var(--muted);
+            margin: 0 0 14px;
+            line-height: 1.4;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-input {
+            flex: 1;
+            height: 40px;
+            padding: 0 12px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            font-size: 13.5px;
+            color: var(--text);
+            background: var(--surface);
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+        }
+
+        .btn-primary {
+            height: 40px;
+            padding: 0 16px;
+            border: none;
+            border-radius: 9px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 13.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.05s;
+            white-space: nowrap;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        .presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .preset-chip {
+            border: 1px solid var(--border);
+            background: var(--surface-subtle);
+            color: var(--muted);
+            font-size: 11.5px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .preset-chip:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        .sliders-box {
+            padding: 12px 20px;
+            background: var(--surface-subtle);
+            border-bottom: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .slider-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .slider-top {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .slider-val {
+            color: var(--accent);
+            font-variant-numeric: tabular-nums;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+            margin: 0;
+        }
+
+        .status-bar {
+            padding: 10px 20px;
+            font-size: 12px;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 38px;
+        }
+
+        .btn-ghost {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 11.5px;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn-ghost:hover {
+            background: var(--surface-subtle);
+        }
+
+        .results-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 20px 24px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 36px 16px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+            border: 1px dashed var(--border);
+            border-radius: var(--radius);
+            background: var(--surface-subtle);
+        }
+
+        .result-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+        }
+
+        .result-card:hover {
+            border-color: #93c5fd;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+            transform: translateY(-1px);
+        }
+
+        .result-card.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16);
+        }
+
+        .card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .enterprise-name {
+            font-size: 14.5px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.3;
+        }
+
+        .suit-badge {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 7px;
+            color: #ffffff;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .match-box {
+            background: var(--surface-subtle);
+            border: 1px solid #eef2f6;
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+        }
+
+        .match-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            margin-bottom: 3px;
+        }
+
+        .matched-eq {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.35;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .metric-cell {
+            background: #f8fafc;
+            border-radius: 7px;
+            padding: 6px 8px;
+        }
+
+        .metric-name {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .metric-value {
+            font-weight: 700;
+            color: var(--text);
+            margin-top: 1px;
+            font-variant-numeric: tabular-nums;
         }
 
         #map {
             flex: 1;
+            height: 100%;
+            position: relative;
+        }
+
+        /* Оформление балунов Яндекс Карт */
+        .ymap-card {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            max-width: 290px;
+            line-height: 1.45;
+            color: #0f172a;
+        }
+
+        .ymap-card-title {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .ymap-card-row {
+            font-size: 12.5px;
+            margin-bottom: 4px;
+        }
+
+        .ymap-card-eq {
+            background: #f1f5f9;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin: 6px 0;
         }
     </style>
-    <div id="app">
-        <div id="panel">
-            <input id="q" placeholder="Что нужно сделать?" style="width:100%">
-            <label>Доступность <input id="acc" type="range" min="0" max="100" value="50"></label>
-            <p></p>
-            <label>Стоимость <input id="cost" type="range" min="0" max="100" value="40"></label>
-            <table id="results"></table>
-        </div>
-        <div id="map"></div>
-    </div>
 </head>
 
 <body>
-    <div id="map"></div>
+    <div id="app">
+        <aside id="panel">
+            <div class="panel-header">
+                <div class="brand-row">
+                    <h1 class="brand-title">GeoEquip Intelligence</h1>
+                    <span class="badge-pill">Semantic GIS</span>
+                </div>
+                <p class="brand-subtitle">
+                    Подбор организаций и лабораторно-производственного оборудования по задаче, доступности и стоимости
+                </p>
+
+                <div class="search-box">
+                    <input
+                        id="q"
+                        class="search-input"
+                        type="text"
+                        placeholder="Например: анализ структуры материалов, съёмка, испытания..."
+                        autocomplete="off"
+                    >
+                    <button id="searchBtn" class="btn-primary" type="button">Найти</button>
+                </div>
+
+                <div class="presets">
+                    <button class="preset-chip" type="button" data-q="видеосъемка и калибровка">видеосъемка и калибровка</button>
+                    <button class="preset-chip" type="button" data-q="исследование материалов">исследование материалов</button>
+                    <button class="preset-chip" type="button" data-q="измерения и диагностика">измерения и диагностика</button>
+                </div>
+            </div>
+
+            <div class="sliders-box">
+                <div class="slider-item">
+                    <div class="slider-top">
+                        <label for="acc">Доступность</label>
+                        <span id="accVal" class="slider-val">50%</span>
+                    </div>
+                    <input id="acc" type="range" min="0" max="100" value="50">
+                </div>
+
+                <div class="slider-item">
+                    <div class="slider-top">
+                        <label for="cost">Стоимость</label>
+                        <span id="costVal" class="slider-val">40%</span>
+                    </div>
+                    <input id="cost" type="range" min="0" max="100" value="40">
+                </div>
+            </div>
+
+            <div id="statusBar" class="status-bar">
+                <span id="statusText">Введите задачу и нажмите Enter для поиска</span>
+                <button id="clearConnBtn" class="btn-ghost" type="button" style="display:none;">Скрыть связи</button>
+            </div>
+
+            <div id="results" class="results-scroll">
+                <div class="empty-state">
+                    Введите описание задачи в строку поиска.<br>
+                    Для каждого результата отобразятся совпавшее оборудование, оценка семантического сходства и итоговый индекс пригодности.
+                </div>
+            </div>
+        </aside>
+
+        <main id="map"></main>
+    </div>
+
     <script>
         var isMapReady = false;
         var pendingActions = [];
         var connectionLines = [];
+        var placemarksByEnterprise = {};
+        var currentResults = [];
+        var selectedEnterprise = null;
 
-        document.addEventListener('DOMContentLoaded', loadYandexMaps);
+        document.addEventListener('DOMContentLoaded', function () {
+            initControls();
+            loadYandexMaps();
+        });
+
+        function initControls() {
+            var qInput = document.getElementById('q');
+            var accInput = document.getElementById('acc');
+            var costInput = document.getElementById('cost');
+            var searchBtn = document.getElementById('searchBtn');
+            var clearConnBtn = document.getElementById('clearConnBtn');
+
+            qInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    doSearch();
+                }
+            });
+
+            searchBtn.addEventListener('click', function () {
+                doSearch();
+            });
+
+            accInput.addEventListener('input', function () {
+                document.getElementById('accVal').textContent = accInput.value + '%';
+            });
+            accInput.addEventListener('change', function () {
+                if (qInput.value.trim()) doSearch();
+            });
+
+            costInput.addEventListener('input', function () {
+                document.getElementById('costVal').textContent = costInput.value + '%';
+            });
+            costInput.addEventListener('change', function () {
+                if (qInput.value.trim()) doSearch();
+            });
+
+            clearConnBtn.addEventListener('click', function () {
+                clearConnections();
+                setStatus('Связи похожих организаций скрыты');
+            });
+
+            var chips = document.querySelectorAll('.preset-chip');
+            chips.forEach(function (chip) {
+                chip.addEventListener('click', function () {
+                    qInput.value = chip.getAttribute('data-q');
+                    doSearch();
+                });
+            });
+        }
+
+        function setStatus(text, showClearConn) {
+            document.getElementById('statusText').textContent = text;
+            var btn = document.getElementById('clearConnBtn');
+            if (typeof showClearConn === 'boolean') {
+                btn.style.display = showClearConn ? 'inline-block' : 'none';
+            }
+        }
 
         function loadYandexMaps() {
             var s = document.createElement('script');
             s.type = 'text/javascript';
             s.src = 'https://api-maps.yandex.ru/2.1/?apikey=f301d10c-f98b-4229-a923-46dab208b6d9&lang=ru_RU';
             s.onload = function () {
+                if (typeof ymaps === 'undefined') {
+                    setStatus('Не удалось инициализировать Яндекс Карты');
+                    return;
+                }
                 ymaps.ready(function () {
                     window.map = new ymaps.Map('map', {
                         center: [55.0, 48.0],
-                        zoom: 6
+                        zoom: 5,
+                        controls: ['zoomControl', 'typeSelector', 'fullscreenControl']
                     });
                     isMapReady = true;
                     for (var i = 0; i < pendingActions.length; i++) {
@@ -65,55 +530,164 @@
                     pendingActions = [];
                 });
             };
+            s.onerror = function () {
+                setStatus('Ошибка загрузки скрипта Яндекс Карт');
+            };
             document.head.appendChild(s);
         }
 
         function clearMap() {
-            if (!isMapReady) { pendingActions.push(function () { clearMap(); }); return; }
+            placemarksByEnterprise = {};
+            if (!isMapReady) {
+                pendingActions.push(function () { clearMap(); });
+                return;
+            }
             clearConnections();
             map.geoObjects.removeAll();
         }
 
-        function addPoint(lat, lon, color, text, enterpriseName) {
-            if (!isMapReady) { pendingActions.push(function () { addPoint(lat, lon, color, text, enterpriseName); }); return; }
-            var p = new ymaps.Placemark(
-                [lat, lon],
-                { balloonContent: text },
-                { preset: 'islands#circleIcon', iconColor: color }
+        function formatMatchedEquipment(matched) {
+            if (!matched) return 'Уточняется по профилю организации';
+            if (Array.isArray(matched)) {
+                return matched.length ? matched.join(', ') : 'Уточняется по профилю организации';
+            }
+            if (typeof matched === 'object') {
+                return matched.name || matched.title || JSON.stringify(matched);
+            }
+            return String(matched);
+        }
+
+        function buildBalloonHtml(item) {
+            var scorePct = ((Number(item.score) || 0) * 100).toFixed(1);
+            var suitVal = (Number(item.suitability) || 0).toFixed(2);
+            var eqText = formatMatchedEquipment(item.matched_equipment);
+
+            return (
+                '<div class="ymap-card">' +
+                    '<div class="ymap-card-title">' + esc(item.enterprise || 'Организация') + '</div>' +
+                    '<div class="ymap-card-row"><b>Пригодность:</b> ' + esc(suitVal) + '  |  <b>Сходство:</b> ' + esc(scorePct) + '%</div>' +
+                    '<div class="ymap-card-eq">Совпавшее оборудование:<br>' + esc(eqText) + '</div>' +
+                    '<div class="ymap-card-row" style="color:#64748b;font-size:11.5px;">Нажмите на метку или карточку, чтобы показать похожие центры</div>' +
+                '</div>'
             );
-            var eName = enterpriseName;
-            p.events.add('click', function () { onEnterpriseClick(eName, lat, lon); });
-            map.geoObjects.add(p);
+        }
+
+        function addPoint(item) {
+            var lat = Number(item.lat);
+            var lon = Number(item.lon);
+            if (isNaN(lat) || isNaN(lon)) return;
+
+            if (!isMapReady) {
+                pendingActions.push(function () { addPoint(item); });
+                return;
+            }
+
+            var color = suitColor(Number(item.suitability) || 0);
+            var balloon = buildBalloonHtml(item);
+
+            var placemark = new ymaps.Placemark(
+                [lat, lon],
+                {
+                    balloonContent: balloon,
+                    hintContent: item.enterprise + ' (' + ((Number(item.score) || 0) * 100).toFixed(1) + '%)'
+                },
+                {
+                    preset: 'islands#circleIcon',
+                    iconColor: color
+                }
+            );
+
+            var eName = item.enterprise;
+            placemark.events.add('click', function () {
+                selectEnterprise(eName, lat, lon, false);
+            });
+
+            map.geoObjects.add(placemark);
+            placemarksByEnterprise[eName] = placemark;
+        }
+
+        function focusOnEnterprise(name, lat, lon) {
+            if (!isMapReady) {
+                pendingActions.push(function () { focusOnEnterprise(name, lat, lon); });
+                return;
+            }
+            var numLat = Number(lat);
+            var numLon = Number(lon);
+            if (!isNaN(numLat) && !isNaN(numLon)) {
+                map.setCenter([numLat, numLon], Math.max(map.getZoom(), 7), { duration: 300 });
+            }
+            var pm = placemarksByEnterprise[name];
+            if (pm && pm.balloon) {
+                pm.balloon.open();
+            }
         }
 
         function showConnections(centerLat, centerLon, similarPoints) {
-            if (!isMapReady) { pendingActions.push(function () { showConnections(centerLat, centerLon, similarPoints); }); return; }
+            if (!isMapReady) {
+                pendingActions.push(function () { showConnections(centerLat, centerLon, similarPoints); });
+                return;
+            }
             clearConnections();
+
             var cLat = Number(centerLat);
             var cLon = Number(centerLon);
             if (typeof similarPoints === 'string') {
                 try { similarPoints = JSON.parse(similarPoints); } catch (e) { return; }
             }
             if (!Array.isArray(similarPoints)) return;
+
+            var addedCount = 0;
             for (var i = 0; i < similarPoints.length; i++) {
                 var point = similarPoints[i];
                 var pLat = Number(point.lat);
                 var pLon = Number(point.lon);
                 if (isNaN(pLat) || isNaN(pLon)) continue;
+
+                var sharedCat = point.shared_categories || 0;
+                var sharedTask = point.shared_tasks || 0;
+
                 var line = new ymaps.Polyline(
                     [[cLat, cLon], [pLat, pLon]],
-                    { balloonContent: 'Общих категорий: ' + (point.shared_categories || 0) + '<br>Общих задач: ' + (point.shared_tasks || 0) },
-                    { strokeColor: '#1E88E5', strokeWidth: 3, strokeOpacity: 0.8, strokeStyle: 'dash' }
+                    {
+                        balloonContent:
+                            '<div class="ymap-card">' +
+                                '<div class="ymap-card-title">Связь с: ' + esc(point.name || 'Партнёр') + '</div>' +
+                                '<div class="ymap-card-row">Общих категорий: <b>' + esc(sharedCat) + '</b></div>' +
+                                '<div class="ymap-card-row">Общих задач: <b>' + esc(sharedTask) + '</b></div>' +
+                            '</div>'
+                    },
+                    {
+                        strokeColor: '#1E88E5',
+                        strokeWidth: 3,
+                        strokeOpacity: 0.85,
+                        strokeStyle: 'dash'
+                    }
                 );
                 map.geoObjects.add(line);
                 connectionLines.push(line);
+
                 var pm = new ymaps.Placemark(
                     [pLat, pLon],
-                    { balloonContent: (point.name || '') + '<br>Схожих категорий: ' + (point.shared_categories || 0) + '<br>Схожих задач: ' + (point.shared_tasks || 0) },
+                    {
+                        balloonContent:
+                            '<div class="ymap-card">' +
+                                '<div class="ymap-card-title">' + esc(point.name || 'Партнёр') + '</div>' +
+                                '<div class="ymap-card-row">Общих категорий: <b>' + esc(sharedCat) + '</b></div>' +
+                                '<div class="ymap-card-row">Общих задач: <b>' + esc(sharedTask) + '</b></div>' +
+                            '</div>',
+                        hintContent: (point.name || 'Партнёр') + ' (категорий: ' + sharedCat + ', задач: ' + sharedTask + ')'
+                    },
                     { preset: 'islands#blueCircleIcon' }
                 );
                 map.geoObjects.add(pm);
                 connectionLines.push(pm);
+                addedCount++;
+            }
+
+            if (addedCount > 0) {
+                setStatus('Показано похожих организаций: ' + addedCount, true);
+            } else {
+                setStatus('Похожие организации по графу не найдены', false);
             }
         }
 
@@ -123,70 +697,173 @@
                 map.geoObjects.remove(connectionLines[i]);
             }
             connectionLines = [];
+            document.getElementById('clearConnBtn').style.display = 'none';
         }
 
-        async function onEnterpriseClick(name, lat, lon) {
-            console.log('click', name, lat, lon);
+        async function selectEnterprise(name, lat, lon, shouldFocusMap) {
+            selectedEnterprise = name;
+            highlightActiveCard(name);
+            if (shouldFocusMap) {
+                focusOnEnterprise(name, lat, lon);
+            }
+
             clearConnections();
-            var r = await fetch('/similar/' + encodeURIComponent(name));
-            console.log('status', r.status);
-            var data = await r.json();
-            console.log('data', data);
-            showConnections(lat, lon, data);
-            console.log('lines', connectionLines.length);
+            setStatus('Загрузка похожих организаций для «' + name + '»...', false);
+
+            try {
+                var r = await fetch('/similar/' + encodeURIComponent(name));
+                if (!r.ok) {
+                    setStatus('Не удалось загрузить похожие организации (статус ' + r.status + ')', false);
+                    return;
+                }
+                var data = await r.json();
+                showConnections(lat, lon, data);
+            } catch (err) {
+                console.error('Ошибка при запросе /similar:', err);
+                setStatus('Ошибка сети при загрузке связей', false);
+            }
         }
 
-        function renderTable(results) {
-            var table = document.getElementById('results');
-            table.innerHTML = '';                       // очистить старые строки
-
-            var head = table.insertRow();
-            ['Предприятие', 'Сходство', 'Пригодность'].forEach(function (t) {
-                var th = document.createElement('th');
-                th.textContent = t;
-                head.appendChild(th);
-            });
-
-            results.forEach(function (x) {
-                var row = table.insertRow();
-                row.insertCell().textContent = x.enterprise;
-                row.insertCell().textContent = (x.score * 100).toFixed(1) + '%';
-                var cell = row.insertCell();
-                cell.textContent = x.suitability.toFixed(2);
-                cell.style.background = suitColor(x.suitability);
+        function highlightActiveCard(name) {
+            var cards = document.querySelectorAll('.result-card');
+            cards.forEach(function (card) {
+                if (card.getAttribute('data-enterprise') === name) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
             });
         }
-        function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        function renderResults(results) {
+            var container = document.getElementById('results');
+            container.innerHTML = '';
+
+            if (!Array.isArray(results) || results.length === 0) {
+                container.innerHTML =
+                    '<div class="empty-state">' +
+                        'По вашему запросу ничего не найдено.<br>' +
+                        'Попробуйте переформулировать задачу или изменить веса доступности и стоимости.' +
+                    '</div>';
+                return;
+            }
+
+            results.forEach(function (item, idx) {
+                var scoreNum = Number(item.score) || 0;
+                var suitNum = Number(item.suitability) || 0;
+                var scorePct = (scoreNum * 100).toFixed(1) + '%';
+                var suitText = suitNum.toFixed(2);
+                var eqText = formatMatchedEquipment(item.matched_equipment);
+                var accText = typeof item.accessibility === 'number' ? item.accessibility.toFixed(2) : '—';
+                var costText = typeof item.cost === 'number' ? item.cost.toFixed(2) : '—';
+
+                var card = document.createElement('article');
+                card.className = 'result-card' + (item.enterprise === selectedEnterprise ? ' active' : '');
+                card.setAttribute('data-enterprise', item.enterprise || '');
+
+                card.innerHTML =
+                    '<div class="card-head">' +
+                        '<div class="enterprise-name">' + (idx + 1) + '. ' + esc(item.enterprise || 'Организация') + '</div>' +
+                        '<span class="suit-badge" style="background:' + suitColor(suitNum) + ';" title="Итоговый индекс пригодности">' +
+                            'Пригодность ' + esc(suitText) +
+                        '</span>' +
+                    '</div>' +
+                    '<div class="match-box">' +
+                        '<div class="match-label">Почему выбрано — совпавшее оборудование</div>' +
+                        '<div class="matched-eq">' + esc(eqText) + '</div>' +
+                    '</div>' +
+                    '<div class="metrics-grid">' +
+                        '<div class="metric-cell">' +
+                            '<div class="metric-name">Сходство (SBERT)</div>' +
+                            '<div class="metric-value">' + esc(scorePct) + '</div>' +
+                        '</div>' +
+                        '<div class="metric-cell">' +
+                            '<div class="metric-name">Доступность</div>' +
+                            '<div class="metric-value">' + esc(accText) + '</div>' +
+                        '</div>' +
+                        '<div class="metric-cell">' +
+                            '<div class="metric-name">Стоимость</div>' +
+                            '<div class="metric-value">' + esc(costText) + '</div>' +
+                        '</div>' +
+                    '</div>';
+
+                card.addEventListener('click', function () {
+                    selectEnterprise(item.enterprise, item.lat, item.lon, true);
+                });
+
+                container.appendChild(card);
+            });
+        }
+
+        function esc(s) {
+            var d = document.createElement('div');
+            d.textContent = s == null ? '' : String(s);
+            return d.innerHTML;
+        }
 
         function suitColor(s) {
-            return s >= 0.75 ? '#22c55e' : s >= 0.5 ? '#eab308' : s >= 0.25 ? '#f97316' : '#ef4444';
+            return s >= 0.75 ? '#16a34a' : s >= 0.5 ? '#ca8a04' : s >= 0.25 ? '#ea580c' : '#dc2626';
         }
 
         async function doSearch() {
             var query = document.getElementById('q').value.trim();
-            if (!query) return;
-            var r = await fetch('/search', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: query, top_k: 8,
-                    accessibility: document.getElementById('acc').value / 100,
-                    cost: document.getElementById('cost').value / 100
-                })
-            });
-            var results = (await r.json()).results;
-            clearMap();
-            results.forEach(function (x) {
-                addPoint(x.lat, x.lon, suitColor(x.suitability),
-                    esc(x.enterprise) + '<br>Пригодность: ' + x.suitability.toFixed(2),
-                    x.enterprise);
-            });
-            renderTable(results);
-        }
+            if (!query) {
+                setStatus('Введите поисковый запрос');
+                return;
+            }
 
-        document.getElementById('q').addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
-        document.getElementById('acc').addEventListener('change', doSearch);
-        document.getElementById('cost').addEventListener('change', doSearch);
+            setStatus('Выполняется семантический поиск и ранжирование...', false);
+
+            try {
+                var r = await fetch('/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: query,
+                        top_k: 8,
+                        accessibility: Number(document.getElementById('acc').value) / 100,
+                        cost: Number(document.getElementById('cost').value) / 100
+                    })
+                });
+
+                if (!r.ok) {
+                    setStatus('Ошибка сервера при поиске (статус ' + r.status + ')', false);
+                    return;
+                }
+
+                var payload = await r.json();
+                var results = Array.isArray(payload.results) ? payload.results : [];
+                currentResults = results;
+
+                clearMap();
+                results.forEach(function (item) {
+                    addPoint(item);
+                });
+                renderResults(results);
+
+                if (results.length > 0) {
+                    setStatus('Найдено организаций: ' + results.length + '. Кликните на карточку или точку для связей', false);
+                    if (isMapReady) {
+                        var validCoords = results
+                            .map(function (x) { return [Number(x.lat), Number(x.lon)]; })
+                            .filter(function (c) { return !isNaN(c[0]) && !isNaN(c[1]); });
+                        if (validCoords.length === 1) {
+                            map.setCenter(validCoords[0], 7, { duration: 300 });
+                        } else if (validCoords.length > 1) {
+                            map.setBounds(ymaps.util.bounds.fromPoints(validCoords), {
+                                checkZoomRange: true,
+                                zoomMargin: 40
+                            });
+                        }
+                    }
+                } else {
+                    setStatus('Совпадений не найдено', false);
+                }
+            } catch (err) {
+                console.error('Ошибка поиска:', err);
+                setStatus('Ошибка соединения с сервером /search', false);
+            }
+        }
     </script>
 </body>
 
